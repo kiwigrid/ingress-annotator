@@ -144,7 +144,7 @@ func (c *conf) getConf(file string) *conf {
 
 func defaultConf() *conf {
 	return &conf{
-		Annotations: annotationConf {
+		Annotations: annotationConf{
 			Global:     map[string]string{},
 			Namespaced: map[string]map[string]string{},
 		},
