@@ -6,6 +6,7 @@ import (
 	"github.com/go-logr/logr"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"os"
 
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -28,14 +29,18 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 
+	logger := logf.Log.WithName("ingress-controller")
 	var c conf
-	c.getConf("demo.yaml")
+	getConf := c.getConf(os.Getenv("CONFIG_PATH"))
+	if getConf == nil {
+		logger.Error(fmt.Errorf("Could not find config file %s", os.Getenv("CONFIG_PATH")), fmt.Sprintf("Could not find config file %s", os.Getenv("CONFIG_PATH")))
+	}
 
 	return &ReconcileIngress{
 		Client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
-		log:    logf.Log.WithName("ingress-controller"),
-		config: c,
+		log:    logger,
+		config: *getConf,
 	}
 }
 
@@ -128,11 +133,20 @@ type annotationConf struct {
 func (c *conf) getConf(file string) *conf {
 	yamlFile, err := ioutil.ReadFile(file)
 	if err != nil {
-		return nil
+		return defaultConf()
 	}
 	err = yaml.Unmarshal(yamlFile, c)
 	if err != nil {
-		return nil
+		return defaultConf()
 	}
 	return c
+}
+
+func defaultConf() *conf {
+	return &conf{
+		Annotations: annotationConf {
+			Global:     map[string]string{},
+			Namespaced: map[string]map[string]string{},
+		},
+	}
 }

@@ -34,6 +34,7 @@ before_script:
 # .golangci.yml file at the top level of your repo.
 script:
   - make
+  - docker build -t $IMG:latest .
 
 deploy:
 - provider: script
