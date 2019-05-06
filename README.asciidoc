@@ -1,11 +1,9 @@
-== Gcp Service Account Controller
+== Ingress Annotator
 
-image:https://travis-ci.com/kiwigrid/gcp-serviceaccount-controller.svg?branch=master["Build Status", link="https://travis-ci.com/kiwigrid/gcp-serviceaccount-controller"]
+image:https://travis-ci.com/kiwigrid/ingress-annotator.svg?branch=master["Build Status", link="https://travis-ci.com/kiwigrid/ingress-annotator"]
 
-this controller manges gcp service account over kubernetes resources.
+this controller annotatoes kubernetes ingress resources.
 
-
-The build tooling for travis is used from https://github.com/IBM/openwhisk-operator
 
 The Helm chart can be found in the Kiwigrid helm repo. Add it via:
 
@@ -15,101 +13,40 @@ helm repo add kiwigrid https://kiwigrid.github.io
 
 The Helm charts source can be found at:
 
-https://github.com/kiwigrid/helm-charts/tree/master/charts/gcp-serviceaccount-controller
+https://github.com/kiwigrid/helm-charts/tree/master/charts/ingress-annotator
 
 
 === Features
 
-- creates gcp service accounts and creates secrets from the service account keyfile
-- handles the full lifecycle of a service account via CRD
-- keyfiles are only exists inside kubernetes and not saved outside
-- with version 0.2.0 you can restrict enabled roles per namespace via regular expressions (this feature is enabled by default; can be disabled with `DISABLE_RESTRICTION_CHECK`)
+- annotate ingress resources globally or per namespace
 
 
-=== Deployment
-
-First you need to create a GCP service account with at least the following permissions:
+=== Configuration 
 
 
-----
-- iam.serviceAccounts.create
-- iam.serviceAccounts.delete
-- iam.serviceAccounts.get
-- iam.serviceAccounts.list
-- iam.serviceAccounts.update
-- iam.serviceAccountKeys.create
-- iam.serviceAccountKeys.delete
-- iam.serviceAccountKeys.get
-- iam.serviceAccountKeys.list
-- pubsub.subscriptions.getIamPolicy
-- pubsub.subscriptions.setIamPolicy
-- pubsub.topics.getIamPolicy
-- pubsub.topics.setIamPolicy
-- storage.buckets.getIamPolicy
-- storage.buckets.setIamPolicy
-- resourcemanager.projects.getIamPolicy
-- resourcemanager.projects.setIamPolicy
-----
+==== Environment Variables
 
-You can use the helm chart to deploy
-Then add the base64 encoded file to the `gcpCredentials` value.
 
-----
-helm upgrade -i -f <YOUR_VALUES_FILE> <RELEASE_NAME> helm/
-----
 
-=== Example
+==== Config File
 
-This is an example resource definition for a service account:
+Example Config File:
 [source,yaml]
 ----
-apiVersion: gcp.kiwigrid.com/v1beta1
-kind: GcpServiceAccount
-metadata:
-  name: gcpserviceaccount-sample
-spec:
-  serviceAccountIdentifier: kube-example
-  serviceAccountDescription: kube-example
-  secretName: kube-example-secret
-  bindings:
-  - resource: "//cloudresourcemanager.googleapis.com/projects/<PROJECT_NAME>"
-    roles:
-    - "roles/cloudsql.editor"
-----
-
-Example for buckets:
-[source,yaml]
-----
-apiVersion: gcp.kiwigrid.com/v1beta1
-kind: GcpServiceAccount
-metadata:
-  name: gcpserviceaccount-bucket-sample
-spec:
-  serviceAccountIdentifier: kube-bucket-example
-  serviceAccountDescription: kube-bucket-example
-  secretName: kube-bucket-example-secret
-  bindings:
-  - resource: buckets/my-bucket-name
-    roles:
-    - roles/storage.objectAdmin
-----
-
-Example for namespace restriction:
-[source,yaml]
-----
-apiVersion: gcp.kiwigrid.com/v1beta1
-kind: GcpNamespaceRestriction
-metadata:
-  labels:
-  name: gcpnamespacerestriction-sample
-spec:
-  namespace: test
-  regex: true
-  restrictions:
-  - resource: "^buckets/my-bucket-name$"
-    roles:
-    - "^roles/storage\.objectAdmin$"
-  - resource: "^pubsub/.*$"
-    roles:
-    - "^roles/.*$"
+annotations:
+  global:
+    traefik.ingress.kubernetes.io/error-pages: |-
+      foo:
+        status:
+        - "503"
+        backend: global-default-backend
+        query: "/{status}.html"
+  namespaced:
+    default:
+      traefik.ingress.kubernetes.io/error-pages: |-
+        foo:
+          status:
+          - "503"
+          backend: global-default-backend
+          query: "/{status}.html"
 ----
